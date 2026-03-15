@@ -48,6 +48,10 @@ const StorageUtil = {
       } catch (removeError) {
         console.error('Failed to clear corrupted tasks:', removeError);
       }
+      // Notify user about corrupted data
+      if (typeof ErrorHandler !== 'undefined') {
+        ErrorHandler.handleCorruptedData('tasks');
+      }
       return [];
     }
   },
@@ -84,6 +88,10 @@ const StorageUtil = {
       return true;
     } catch (e) {
       console.error('Failed to save tasks:', e);
+      // Notify user about save failure
+      if (typeof ErrorHandler !== 'undefined') {
+        ErrorHandler.handleStorageError(e, 'save tasks');
+      }
       return false;
     }
   },
@@ -110,6 +118,10 @@ const StorageUtil = {
         localStorage.removeItem('quickLinks');
       } catch (removeError) {
         console.error('Failed to clear corrupted quick links:', removeError);
+      }
+      // Notify user about corrupted data
+      if (typeof ErrorHandler !== 'undefined') {
+        ErrorHandler.handleCorruptedData('quick links');
       }
       return [];
     }
@@ -147,6 +159,10 @@ const StorageUtil = {
       return true;
     } catch (e) {
       console.error('Failed to save quick links:', e);
+      // Notify user about save failure
+      if (typeof ErrorHandler !== 'undefined') {
+        ErrorHandler.handleStorageError(e, 'save quick links');
+      }
       return false;
     }
   }
@@ -224,7 +240,7 @@ const GreetingWidget = {
 
   /**
    * Render greeting, time, and date to DOM
-   * Optimized to only update changed elements
+   * Optimized to only update changed elements using requestAnimationFrame
    */
   render() {
     const now = new Date();
@@ -237,18 +253,21 @@ const GreetingWidget = {
     const timeElement = document.getElementById('time');
     const dateElement = document.getElementById('date');
     
-    // Only update if content has changed (performance optimization)
-    if (greetingElement && greetingElement.textContent !== greeting) {
-      greetingElement.textContent = greeting;
-    }
-    
-    if (timeElement && timeElement.textContent !== time) {
-      timeElement.textContent = time;
-    }
-    
-    if (dateElement && dateElement.textContent !== date) {
-      dateElement.textContent = date;
-    }
+    // Batch DOM updates using requestAnimationFrame for optimal performance
+    requestAnimationFrame(() => {
+      // Only update if content has changed (performance optimization)
+      if (greetingElement && greetingElement.textContent !== greeting) {
+        greetingElement.textContent = greeting;
+      }
+      
+      if (timeElement && timeElement.textContent !== time) {
+        timeElement.textContent = time;
+      }
+      
+      if (dateElement && dateElement.textContent !== date) {
+        dateElement.textContent = date;
+      }
+    });
   }
 };
 
@@ -356,7 +375,7 @@ const FocusTimer = {
 
   /**
    * Render timer display
-   * Optimized to only update when value changes
+   * Optimized to only update when value changes and use requestAnimationFrame
    */
   render() {
     const displayElement = document.getElementById('timer-display');
@@ -364,7 +383,10 @@ const FocusTimer = {
       const formattedTime = this.formatTime(this.timeRemaining);
       // Only update if content has changed (performance optimization)
       if (displayElement.textContent !== formattedTime) {
-        displayElement.textContent = formattedTime;
+        // Use requestAnimationFrame for smooth, optimized updates
+        requestAnimationFrame(() => {
+          displayElement.textContent = formattedTime;
+        });
       }
     }
   },
@@ -378,15 +400,30 @@ const FocusTimer = {
     const resetButton = document.getElementById('timer-reset');
 
     if (startButton) {
-      startButton.addEventListener('click', () => this.start());
+      startButton.addEventListener('click', () => {
+        // Performance monitoring: Measure timer start time
+        PerformanceMonitor.measureAction('Start Timer', () => {
+          this.start();
+        });
+      });
     }
 
     if (stopButton) {
-      stopButton.addEventListener('click', () => this.stop());
+      stopButton.addEventListener('click', () => {
+        // Performance monitoring: Measure timer stop time
+        PerformanceMonitor.measureAction('Stop Timer', () => {
+          this.stop();
+        });
+      });
     }
 
     if (resetButton) {
-      resetButton.addEventListener('click', () => this.reset());
+      resetButton.addEventListener('click', () => {
+        // Performance monitoring: Measure timer reset time
+        PerformanceMonitor.measureAction('Reset Timer', () => {
+          this.reset();
+        });
+      });
     }
   }
 };
@@ -425,15 +462,18 @@ const TodoWidget = {
       taskForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
-        const text = taskInput.value;
-        const task = this.addTask(text);
-        
-        if (task) {
-          // Clear input on successful add
-          taskInput.value = '';
-          // Re-render to show new task
-          this.renderTasks();
-        }
+        // Performance monitoring: Measure task addition time
+        PerformanceMonitor.measureAction('Add Task', () => {
+          const text = taskInput.value;
+          const task = this.addTask(text);
+          
+          if (task) {
+            // Clear input on successful add
+            taskInput.value = '';
+            // Re-render to show new task
+            this.renderTasks();
+          }
+        });
       });
     }
   },
@@ -586,18 +626,21 @@ const TodoWidget = {
       return; // Container not found
     }
 
-    // Use DocumentFragment for efficient batch DOM updates
-    const fragment = document.createDocumentFragment();
+    // Performance optimization: Use requestAnimationFrame for smooth rendering
+    requestAnimationFrame(() => {
+      // Use DocumentFragment for efficient batch DOM updates
+      const fragment = document.createDocumentFragment();
 
-    // Render each task into the fragment
-    this.tasks.forEach(task => {
-      const taskElement = this.renderTask(task);
-      fragment.appendChild(taskElement);
+      // Render each task into the fragment
+      this.tasks.forEach(task => {
+        const taskElement = this.renderTask(task);
+        fragment.appendChild(taskElement);
+      });
+
+      // Single DOM update - clear and append all at once
+      taskListElement.innerHTML = '';
+      taskListElement.appendChild(fragment);
     });
-
-    // Single DOM update - clear and append all at once
-    taskListElement.innerHTML = '';
-    taskListElement.appendChild(fragment);
   },
 
   /**
@@ -625,8 +668,11 @@ const TodoWidget = {
     
     // Checkbox event handler
     checkbox.addEventListener('change', () => {
-      this.toggleTask(task.id);
-      this.renderTasks(); // Re-render to update styling
+      // Performance monitoring: Measure task toggle time
+      PerformanceMonitor.measureAction('Toggle Task', () => {
+        this.toggleTask(task.id);
+        this.renderTasks(); // Re-render to update styling
+      });
     });
 
     // Create task text span
@@ -653,8 +699,11 @@ const TodoWidget = {
     
     // Delete button event handler
     deleteButton.addEventListener('click', () => {
-      this.deleteTask(task.id);
-      this.renderTasks(); // Re-render to remove task
+      // Performance monitoring: Measure task deletion time
+      PerformanceMonitor.measureAction('Delete Task', () => {
+        this.deleteTask(task.id);
+        this.renderTasks(); // Re-render to remove task
+      });
     });
 
     // Assemble the task element
@@ -699,11 +748,14 @@ const TodoWidget = {
 
     // Function to save edit
     const saveEdit = () => {
-      const newText = input.value;
-      this.editTask(id, newText);
-      
-      // Re-render to show updated text or revert
-      this.renderTasks();
+      // Performance monitoring: Measure task edit time
+      PerformanceMonitor.measureAction('Edit Task', () => {
+        const newText = input.value;
+        this.editTask(id, newText);
+        
+        // Re-render to show updated text or revert
+        this.renderTasks();
+      });
     };
 
     // Function to cancel edit
@@ -808,36 +860,42 @@ const QuickLinksWidget = {
       linkForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
-        const label = labelInput.value;
-        const url = urlInput.value;
-        
-        // Clear any previous error message
-        if (errorElement) {
-          errorElement.textContent = '';
-          errorElement.style.display = 'none';
-        }
-        
-        // Validate URL
-        if (!this.validateUrl(url)) {
-          // Display error message for invalid URL
-          if (errorElement) {
-            errorElement.textContent = 'URL must start with http:// or https://';
-            errorElement.style.display = 'block';
-          }
-          return;
-        }
-        
-        // Attempt to add the link
-        const link = this.addLink(label, url);
-        
-        if (link) {
-          // Clear inputs on successful add
-          labelInput.value = '';
-          urlInput.value = '';
+        // Performance monitoring: Measure link addition time
+        PerformanceMonitor.measureAction('Add Quick Link', () => {
+          const label = labelInput.value;
+          const url = urlInput.value;
           
-          // Re-render to show new link
-          this.renderLinks();
-        }
+          // Clear any previous error message
+          if (errorElement) {
+            errorElement.textContent = '';
+            errorElement.style.display = 'none';
+          }
+          
+          // Validate URL
+          if (!this.validateUrl(url)) {
+            // Log error to console
+            console.error('Invalid URL provided:', url);
+            
+            // Display error message for invalid URL
+            if (errorElement) {
+              errorElement.textContent = 'URL must start with http:// or https://';
+              errorElement.style.display = 'block';
+            }
+            return;
+          }
+          
+          // Attempt to add the link
+          const link = this.addLink(label, url);
+          
+          if (link) {
+            // Clear inputs on successful add
+            labelInput.value = '';
+            urlInput.value = '';
+            
+            // Re-render to show new link
+            this.renderLinks();
+          }
+        });
       });
 
       // Clear error message when user modifies URL input
@@ -902,7 +960,22 @@ const QuickLinksWidget = {
    * @param {string} url - URL to open
    */
   openLink(url) {
-    window.open(url, '_blank');
+    try {
+      const newWindow = window.open(url, '_blank');
+      
+      // Check if popup was blocked
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        console.warn('Popup blocked for URL:', url);
+        if (typeof ErrorHandler !== 'undefined') {
+          ErrorHandler.showNotification('Popup blocked. Please allow popups for this site.', 'error');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to open link:', url, e);
+      if (typeof ErrorHandler !== 'undefined') {
+        ErrorHandler.showNotification('Failed to open link.', 'error');
+      }
+    }
   },
 
   /**
@@ -917,18 +990,21 @@ const QuickLinksWidget = {
       return; // Container not found
     }
 
-    // Use DocumentFragment for efficient batch DOM updates
-    const fragment = document.createDocumentFragment();
+    // Performance optimization: Use requestAnimationFrame for smooth rendering
+    requestAnimationFrame(() => {
+      // Use DocumentFragment for efficient batch DOM updates
+      const fragment = document.createDocumentFragment();
 
-    // Render each link into the fragment
-    this.links.forEach(link => {
-      const linkElement = this.renderLink(link);
-      fragment.appendChild(linkElement);
+      // Render each link into the fragment
+      this.links.forEach(link => {
+        const linkElement = this.renderLink(link);
+        fragment.appendChild(linkElement);
+      });
+
+      // Single DOM update - clear and append all at once
+      linksContainer.innerHTML = '';
+      linksContainer.appendChild(fragment);
     });
-
-    // Single DOM update - clear and append all at once
-    linksContainer.innerHTML = '';
-    linksContainer.appendChild(fragment);
   },
 
   /**
@@ -961,8 +1037,11 @@ const QuickLinksWidget = {
     
     // Delete button event handler
     deleteButton.addEventListener('click', () => {
-      this.deleteLink(link.id);
-      this.renderLinks(); // Re-render to remove link
+      // Performance monitoring: Measure link deletion time
+      PerformanceMonitor.measureAction('Delete Quick Link', () => {
+        this.deleteLink(link.id);
+        this.renderLinks(); // Re-render to remove link
+      });
     });
 
     // Assemble the link element
@@ -970,6 +1049,70 @@ const QuickLinksWidget = {
     div.appendChild(deleteButton);
 
     return div;
+  }
+};
+
+// ============================================================================
+// Performance Monitoring Utility
+// ============================================================================
+
+const PerformanceMonitor = {
+  // Track action timings
+  actionTimings: [],
+  
+  /**
+   * Measure the time taken for an action
+   * @param {string} actionName - Name of the action being measured
+   * @param {Function} action - Function to execute and measure
+   * @returns {*} Result of the action function
+   */
+  measureAction(actionName, action) {
+    const startTime = performance.now();
+    const result = action();
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    
+    // Log timing
+    this.actionTimings.push({ action: actionName, duration, timestamp: Date.now() });
+    
+    // Warn if action exceeds 100ms threshold (Requirement 13.2)
+    if (duration > 100) {
+      console.warn(`Action "${actionName}" took ${duration.toFixed(2)}ms (exceeds 100ms target)`);
+    } else {
+      console.log(`Action "${actionName}" completed in ${duration.toFixed(2)}ms`);
+    }
+    
+    return result;
+  },
+  
+  /**
+   * Get performance statistics
+   * @returns {Object} Performance statistics
+   */
+  getStats() {
+    if (this.actionTimings.length === 0) {
+      return { count: 0, average: 0, max: 0, min: 0 };
+    }
+    
+    const durations = this.actionTimings.map(t => t.duration);
+    const sum = durations.reduce((a, b) => a + b, 0);
+    const average = sum / durations.length;
+    const max = Math.max(...durations);
+    const min = Math.min(...durations);
+    
+    return {
+      count: this.actionTimings.length,
+      average: average.toFixed(2),
+      max: max.toFixed(2),
+      min: min.toFixed(2)
+    };
+  },
+  
+  /**
+   * Clear performance data
+   */
+  clear() {
+    this.actionTimings = [];
   }
 };
 
@@ -1048,6 +1191,13 @@ function initApp() {
         errorElement.style.display = 'block';
       }
       console.error('Local Storage is not available. Data persistence is disabled.');
+      
+      // Show notification as well
+      ErrorHandler.showNotification(
+        'Data persistence is unavailable. Your changes will not be saved.',
+        'error',
+        5000
+      );
     }
 
     // Initialize all widgets

@@ -27,6 +27,9 @@ body {
   color: var(--text-primary);
   background-color: var(--background);
   min-height: 100vh;
+  /* Performance optimization: Enable hardware acceleration */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h2 {
@@ -51,6 +54,8 @@ h2 {
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 2px 4px var(--shadow);
+  /* Performance optimization: Promote to own layer for smoother rendering */
+  will-change: contents;
 }
 
 /* Button Styles */
@@ -63,6 +68,8 @@ h2 {
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.1s ease;
   font-family: inherit;
+  /* Performance optimization: Use transform for animations */
+  will-change: transform;
 }
 
 .btn:hover {
@@ -89,6 +96,36 @@ h2 {
 
 .btn-secondary:hover {
   background-color: var(--secondary-hover);
+}
+
+.btn-small {
+  font-size: 14px;
+  padding: 0.375rem 0.75rem;
+}
+
+.btn-edit {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-edit:hover {
+  background-color: var(--border);
+  color: var(--text-primary);
+  transform: none;
+}
+
+.btn-delete {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-delete:hover {
+  background-color: var(--error);
+  color: white;
+  border-color: var(--error);
+  transform: none;
 }
 
 /* Input Styles */
@@ -170,30 +207,42 @@ input[type="text"]:focus {
 .greeting-section {
   text-align: center;
   border-bottom: 3px solid var(--primary-color);
+  padding: 2rem 1.5rem;
 }
 
 .greeting {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.2;
 }
 
 .time {
-  font-size: 3rem;
+  font-size: 4rem;
   font-weight: 700;
   color: var(--primary-color);
-  margin-bottom: 0.25rem;
-  letter-spacing: -1px;
+  margin-bottom: 0.5rem;
+  letter-spacing: -2px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  /* Performance optimization: Optimize for frequent updates */
+  will-change: contents;
+  contain: layout style;
 }
 
 .date {
   font-size: 1.125rem;
   color: var(--text-secondary);
   font-weight: 400;
+  line-height: 1.4;
 }
 
 /* Focus Timer Widget Styles */
+.timer-section {
+  text-align: center;
+}
+
 .timer-display {
   font-size: 4rem;
   font-weight: 700;
@@ -202,16 +251,28 @@ input[type="text"]:focus {
   margin: 1.5rem 0;
   font-variant-numeric: tabular-nums;
   letter-spacing: -2px;
+  line-height: 1;
+  /* Performance optimization: Optimize for frequent updates */
+  will-change: contents;
+  contain: layout style;
 }
 
 .timer-controls {
   display: flex;
   gap: 0.75rem;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .timer-controls .btn {
   min-width: 100px;
+  font-size: 15px;
+  padding: 0.625rem 1.25rem;
+}
+
+.timer-controls .btn:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 /* To-Do List Widget Styles */
@@ -248,11 +309,11 @@ input[type="text"]:focus {
   border-color: var(--primary-color);
 }
 
-.task-item.completed {
+.task-item.task-completed {
   opacity: 0.6;
 }
 
-.task-item.completed .task-text {
+.task-item.task-completed .task-text {
   text-decoration: line-through;
   color: var(--text-secondary);
 }
@@ -277,32 +338,6 @@ input[type="text"]:focus {
   padding: 0.5rem;
   border: 1px solid var(--primary-color);
   border-radius: 4px;
-}
-
-.task-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.task-btn {
-  font-size: 14px;
-  padding: 0.375rem 0.75rem;
-  border: none;
-  background-color: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.task-btn:hover {
-  background-color: var(--border);
-  color: var(--text-primary);
-}
-
-.task-btn.delete:hover {
-  background-color: var(--error);
-  color: white;
 }
 
 /* Quick Links Widget Styles */
@@ -330,42 +365,55 @@ input[type="text"]:focus {
   align-items: center;
   gap: 0.5rem;
   background-color: var(--primary-color);
-  color: white;
-  padding: 0.5rem 0.75rem;
   border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  text-decoration: none;
+  padding: 0.25rem;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  /* Performance optimization: Use transform for animations */
+  will-change: transform;
 }
 
 .link-item:hover {
   background-color: var(--primary-hover);
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px var(--shadow);
 }
 
 .link-item:active {
   transform: translateY(0);
 }
 
-.link-delete {
+.btn-link {
   background-color: transparent;
-  border: none;
   color: white;
+  border: none;
   cursor: pointer;
-  font-size: 16px;
-  padding: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
   transition: background-color 0.2s ease;
+  font-family: inherit;
+  flex: 1;
+  text-align: left;
 }
 
-.link-delete:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+.btn-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.link-item .btn-delete {
+  background-color: transparent;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+}
+
+.link-item .btn-delete:hover {
+  background-color: rgba(231, 76, 60, 0.9);
+  transform: none;
 }
