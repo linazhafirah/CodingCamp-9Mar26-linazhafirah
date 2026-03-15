@@ -9,6 +9,12 @@
 <body>
     <main class="dashboard">
         <header class="greeting-section">
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                <span class="theme-icon">🌙</span>
+            </button>
+            <button id="settings-button" class="settings-button" aria-label="Open settings">
+                <span class="settings-icon">⚙️</span>
+            </button>
             <div id="greeting" class="greeting"></div>
             <div id="time" class="time"></div>
             <div id="date" class="date"></div>
@@ -16,6 +22,7 @@
 
         <section class="timer-section">
             <h2>Focus Timer</h2>
+            <button id="timer-settings-button" class="timer-settings-button" aria-label="Timer settings">⚙️</button>
             <div id="timer-display" class="timer-display">25:00</div>
             <div class="timer-controls">
                 <button id="timer-start" class="btn btn-primary">Start</button>
@@ -46,6 +53,54 @@
 
         <div id="storage-error" class="storage-error" style="display: none;">
             Data persistence is unavailable. Your changes will not be saved.
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Settings</h2>
+                    <button id="modal-close" class="modal-close" aria-label="Close settings">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="settings-form">
+                        <div class="form-group">
+                            <label for="user-name-input">Your Name</label>
+                            <input type="text" id="user-name-input" class="form-input" placeholder="Enter your name (optional)" aria-label="Your name">
+                            <p class="form-help">This will be added to your greeting message</p>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" id="clear-name-button" class="btn btn-secondary">Clear Name</button>
+                            <button type="button" id="cancel-button" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timer Settings Modal -->
+        <div id="timer-settings-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Timer Settings</h2>
+                    <button id="timer-modal-close" class="modal-close" aria-label="Close timer settings">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="timer-settings-form">
+                        <div class="form-group">
+                            <label for="timer-duration-input">Timer Duration (minutes)</label>
+                            <input type="number" id="timer-duration-input" class="form-input" min="1" max="120" placeholder="25" aria-label="Timer duration in minutes">
+                            <p class="form-help">Enter a value between 1 and 120 minutes</p>
+                            <div id="timer-duration-error" class="error-message" style="display: none;"></div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" id="timer-cancel-button" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </main>
 

@@ -165,6 +165,116 @@ const StorageUtil = {
       }
       return false;
     }
+  },
+
+  /**
+   * Load theme preference from Local Storage
+   * @returns {string|null} Theme value ('light' or 'dark'), or null if not set
+   */
+  loadTheme() {
+    try {
+      const theme = localStorage.getItem('theme');
+      return theme;
+    } catch (e) {
+      console.error('Failed to load theme:', e);
+      return null;
+    }
+  },
+
+  /**
+   * Save theme preference to Local Storage
+   * @param {string} theme - Theme value to save ('light' or 'dark')
+   * @returns {boolean} True if save was successful, false otherwise
+   */
+  saveTheme(theme) {
+    try {
+      localStorage.setItem('theme', theme);
+      return true;
+    } catch (e) {
+      console.error('Failed to save theme:', e);
+      // Notify user about save failure
+      if (typeof ErrorHandler !== 'undefined') {
+        ErrorHandler.handleStorageError(e, 'save theme');
+      }
+      return false;
+    }
+  },
+
+  /**
+   * Load user name from Local Storage
+   * @returns {string|null} User name value, or null if not set
+   */
+  loadUserName() {
+    try {
+      const userName = localStorage.getItem('userName');
+      return userName;
+    } catch (e) {
+      console.error('Failed to load user name:', e);
+      return null;
+    }
+  },
+
+  /**
+   * Save user name to Local Storage
+   * @param {string} userName - User name value to save
+   * @returns {boolean} True if save was successful, false otherwise
+   */
+  saveUserName(userName) {
+    try {
+      if (userName === null || userName === '') {
+        localStorage.removeItem('userName');
+      } else {
+        localStorage.setItem('userName', userName);
+      }
+      return true;
+    } catch (e) {
+      console.error('Failed to save user name:', e);
+      // Notify user about save failure
+      if (typeof ErrorHandler !== 'undefined') {
+        ErrorHandler.handleStorageError(e, 'save user name');
+      }
+      return false;
+    }
+  },
+
+  /**
+   * Load timer duration from Local Storage
+   * @returns {number|null} Timer duration in minutes, or null if not set
+   */
+  loadTimerDuration() {
+    try {
+      const duration = localStorage.getItem('timerDuration');
+      if (duration === null) {
+        return null;
+      }
+      const parsed = parseInt(duration, 10);
+      if (isNaN(parsed)) {
+        return null;
+      }
+      return parsed;
+    } catch (e) {
+      console.error('Failed to load timer duration:', e);
+      return null;
+    }
+  },
+
+  /**
+   * Save timer duration to Local Storage
+   * @param {number} duration - Timer duration in minutes to save
+   * @returns {boolean} True if save was successful, false otherwise
+   */
+  saveTimerDuration(duration) {
+    try {
+      localStorage.setItem('timerDuration', String(duration));
+      return true;
+    } catch (e) {
+      console.error('Failed to save timer duration:', e);
+      // Notify user about save failure
+      if (typeof ErrorHandler !== 'undefined') {
+        ErrorHandler.handleStorageError(e, 'save timer duration');
+      }
+      return false;
+    }
   }
 };
 
@@ -174,11 +284,14 @@ const StorageUtil = {
 
 const GreetingWidget = {
   intervalId: null,
+  userName: null,
 
   /**
    * Initialize the greeting widget
    */
   init() {
+    // Load user name from storage
+    this.userName = StorageUtil.loadUserName();
     this.render();
     // Update time every second
     this.intervalId = setInterval(() => this.render(), 1000);
@@ -245,7 +358,9 @@ const GreetingWidget = {
   render() {
     const now = new Date();
     const hour = now.getHours();
-    const greeting = this.getGreeting(hour);
+    const baseGreeting = this.getGreeting(hour);
+    // Append user name if set
+    const greeting = this.userName ? `${baseGreeting}, ${this.userName}` : baseGreeting;
     const time = this.formatTime(now);
     const date = this.formatDate(now);
     
@@ -268,6 +383,16 @@ const GreetingWidget = {
         dateElement.textContent = date;
       }
     });
+  },
+
+  /**
+   * Update user name and re-render greeting
+   * @param {string|null} newUserName - New user name to set, or null to clear
+   */
+  setUserName(newUserName) {
+    this.userName = newUserName;
+    StorageUtil.saveUserName(newUserName);
+    this.render();
   }
 };
 
@@ -280,12 +405,18 @@ const FocusTimer = {
   timeRemaining: 1500, // 25 minutes in seconds
   isRunning: false,
   intervalId: null,
+  customDuration: 25, // Default 25 minutes
 
   /**
    * Initialize the timer widget
    */
   init() {
-    this.timeRemaining = 1500;
+    // Load custom duration from storage (default to 25 minutes)
+    const savedDuration = StorageUtil.loadTimerDuration();
+    this.customDuration = savedDuration !== null ? savedDuration : 25;
+    
+    // Set initial time remaining based on custom duration
+    this.timeRemaining = this.customDuration * 60;
     this.isRunning = false;
     this.intervalId = null;
     this.render();
@@ -334,12 +465,35 @@ const FocusTimer = {
   },
 
   /**
-   * Reset timer to 25 minutes
+   * Reset timer to custom duration
    */
   reset() {
     this.stop();
-    this.timeRemaining = 1500;
+    this.timeRemaining = this.customDuration * 60;
     this.render();
+  },
+
+  /**
+   * Set custom timer duration
+   * @param {number} minutes - Duration in minutes (1-120)
+   * @returns {boolean} True if duration was set successfully, false if invalid
+   */
+  setDuration(minutes) {
+    // Validate range (1-120 minutes)
+    if (typeof minutes !== 'number' || minutes < 1 || minutes > 120) {
+      return false;
+    }
+
+    // Update custom duration
+    this.customDuration = minutes;
+
+    // Save to storage
+    StorageUtil.saveTimerDuration(minutes);
+
+    // Reset timer to new duration
+    this.reset();
+
+    return true;
   },
 
   /**
@@ -444,6 +598,16 @@ const TodoWidget = {
     // Load tasks from Local Storage
     this.tasks = StorageUtil.loadTasks();
     
+    // Ensure all tasks have an order property
+    this.tasks.forEach((task, index) => {
+      if (typeof task.order !== 'number') {
+        task.order = index;
+      }
+    });
+
+    // Sort tasks by order
+    this.tasks.sort((a, b) => a.order - b.order);
+    
     // Render tasks to display
     this.renderTasks();
     
@@ -499,9 +663,26 @@ const TodoWidget = {
   },
 
   /**
+   * Check if a task with the same text already exists (case-insensitive, trimmed)
+   * @param {string} text - Task text to check
+   * @returns {boolean} True if duplicate exists, false otherwise
+   */
+  isDuplicateTask(text) {
+    if (typeof text !== 'string') {
+      return false;
+    }
+
+    const normalizedText = text.trim().toLowerCase();
+    
+    return this.tasks.some(task => 
+      task.text.trim().toLowerCase() === normalizedText
+    );
+  },
+
+  /**
    * Create a new task object
    * @param {string} text - Task text
-   * @returns {Object|null} Task object with id, text, completed, createdAt, or null if invalid
+   * @returns {Object|null} Task object with id, text, completed, createdAt, order, or null if invalid
    */
   createTaskObject(text) {
     if (!this.validateTaskText(text)) {
@@ -511,25 +692,43 @@ const TodoWidget = {
     const trimmedText = text.trim();
     const now = Date.now();
 
+    // Calculate order - new tasks go to the end
+    const maxOrder = this.tasks.length > 0 
+      ? Math.max(...this.tasks.map(t => t.order || 0))
+      : -1;
+
     return {
       id: this.generateId(),
       text: trimmedText,
       completed: false,
-      createdAt: now
+      createdAt: now,
+      order: maxOrder + 1
     };
   },
 
   /**
    * Add a new task to the list
    * @param {string} text - Task text to add
-   * @returns {Object|null} Created task object, or null if validation fails
+   * @returns {Object|null} Created task object, or null if validation fails or duplicate detected
    */
   addTask(text) {
-    // Validate and create task object
+    // Validate task text first
+    if (!this.validateTaskText(text)) {
+      return null; // Validation failed
+    }
+
+    // Check for duplicate task before creating the task object
+    if (this.isDuplicateTask(text)) {
+      // Display error message when duplicate detected
+      ErrorHandler.showNotification('This task already exists in your list', 'error', 3000);
+      return null; // Do not create duplicate task
+    }
+
+    // Create task object (validation already passed)
     const task = this.createTaskObject(text);
     
     if (!task) {
-      return null; // Validation failed
+      return null; // Should not happen since we already validated, but safety check
     }
 
     // Add to in-memory task list
@@ -615,6 +814,60 @@ const TodoWidget = {
   },
 
   /**
+   * Move a task up in the list order
+   * @param {string} id - ID of the task to move up
+   * @returns {boolean} True if move succeeded, false if task not found or already at top
+   */
+  moveTaskUp(id) {
+    const taskIndex = this.tasks.findIndex(t => t.id === id);
+    
+    if (taskIndex === -1 || taskIndex === 0) {
+      return false; // Task not found or already at top
+    }
+
+    // Swap with previous task
+    const temp = this.tasks[taskIndex];
+    this.tasks[taskIndex] = this.tasks[taskIndex - 1];
+    this.tasks[taskIndex - 1] = temp;
+
+    // Update order values
+    this.tasks[taskIndex].order = taskIndex;
+    this.tasks[taskIndex - 1].order = taskIndex - 1;
+
+    // Persist changes to Local Storage
+    StorageUtil.saveTasks(this.tasks);
+
+    return true;
+  },
+
+  /**
+   * Move a task down in the list order
+   * @param {string} id - ID of the task to move down
+   * @returns {boolean} True if move succeeded, false if task not found or already at bottom
+   */
+  moveTaskDown(id) {
+    const taskIndex = this.tasks.findIndex(t => t.id === id);
+    
+    if (taskIndex === -1 || taskIndex === this.tasks.length - 1) {
+      return false; // Task not found or already at bottom
+    }
+
+    // Swap with next task
+    const temp = this.tasks[taskIndex];
+    this.tasks[taskIndex] = this.tasks[taskIndex + 1];
+    this.tasks[taskIndex + 1] = temp;
+
+    // Update order values
+    this.tasks[taskIndex].order = taskIndex;
+    this.tasks[taskIndex + 1].order = taskIndex + 1;
+
+    // Persist changes to Local Storage
+    StorageUtil.saveTasks(this.tasks);
+
+    return true;
+  },
+
+  /**
    * Render all tasks to the DOM
    * Clears the task list container and re-renders all tasks
    * Optimized to minimize DOM manipulations
@@ -680,6 +933,55 @@ const TodoWidget = {
     textSpan.className = 'task-text';
     textSpan.textContent = task.text;
 
+    // Create reorder buttons container
+    const reorderButtons = document.createElement('div');
+    reorderButtons.className = 'task-reorder-buttons';
+
+    // Create up button
+    const upButton = document.createElement('button');
+    upButton.className = 'btn btn-small btn-reorder';
+    upButton.textContent = '↑';
+    upButton.setAttribute('aria-label', `Move task up: ${task.text}`);
+    
+    // Disable up button if task is first
+    const taskIndex = this.tasks.findIndex(t => t.id === task.id);
+    if (taskIndex === 0) {
+      upButton.disabled = true;
+      upButton.classList.add('btn-disabled');
+    }
+    
+    // Up button event handler
+    upButton.addEventListener('click', () => {
+      PerformanceMonitor.measureAction('Move Task Up', () => {
+        this.moveTaskUp(task.id);
+        this.renderTasks();
+      });
+    });
+
+    // Create down button
+    const downButton = document.createElement('button');
+    downButton.className = 'btn btn-small btn-reorder';
+    downButton.textContent = '↓';
+    downButton.setAttribute('aria-label', `Move task down: ${task.text}`);
+    
+    // Disable down button if task is last
+    if (taskIndex === this.tasks.length - 1) {
+      downButton.disabled = true;
+      downButton.classList.add('btn-disabled');
+    }
+    
+    // Down button event handler
+    downButton.addEventListener('click', () => {
+      PerformanceMonitor.measureAction('Move Task Down', () => {
+        this.moveTaskDown(task.id);
+        this.renderTasks();
+      });
+    });
+
+    // Add buttons to reorder container
+    reorderButtons.appendChild(upButton);
+    reorderButtons.appendChild(downButton);
+
     // Create edit button
     const editButton = document.createElement('button');
     editButton.className = 'btn btn-small btn-edit';
@@ -709,6 +1011,7 @@ const TodoWidget = {
     // Assemble the task element
     li.appendChild(checkbox);
     li.appendChild(textSpan);
+    li.appendChild(reorderButtons);
     li.appendChild(editButton);
     li.appendChild(deleteButton);
 
@@ -1170,6 +1473,393 @@ const ErrorHandler = {
 };
 
 // ============================================================================
+// Theme Widget Module
+// ============================================================================
+
+const ThemeWidget = {
+  currentTheme: 'light',
+  toggleButton: null,
+  themeIcon: null,
+
+  /**
+   * Initialize theme widget
+   * Load saved theme and set up toggle button
+   */
+  init() {
+    // Get DOM elements
+    this.toggleButton = document.getElementById('theme-toggle');
+    this.themeIcon = this.toggleButton?.querySelector('.theme-icon');
+
+    if (!this.toggleButton || !this.themeIcon) {
+      console.error('Theme toggle button or icon not found');
+      return;
+    }
+
+    // Load saved theme from storage
+    const savedTheme = StorageUtil.loadTheme();
+    
+    // Apply saved theme or default to light
+    if (savedTheme === 'dark') {
+      this.currentTheme = 'dark';
+      this.applyTheme('dark');
+    } else {
+      this.currentTheme = 'light';
+      this.applyTheme('light');
+    }
+
+    // Set up event listener for toggle button
+    this.toggleButton.addEventListener('click', () => this.toggleTheme());
+  },
+
+  /**
+   * Toggle between light and dark themes
+   */
+  toggleTheme() {
+    const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+    this.applyTheme(newTheme);
+    
+    // Save to storage
+    const saved = StorageUtil.saveTheme(newTheme);
+    
+    if (!saved) {
+      console.warn('Failed to save theme preference');
+    }
+  },
+
+  /**
+   * Apply theme to the page
+   * @param {string} theme - Theme to apply ('light' or 'dark')
+   */
+  applyTheme(theme) {
+    this.currentTheme = theme;
+    
+    if (theme === 'dark') {
+      document.body.classList.add('dark-theme');
+      this.themeIcon.textContent = '☀️';
+    } else {
+      document.body.classList.remove('dark-theme');
+      this.themeIcon.textContent = '🌙';
+    }
+  }
+};
+
+// ============================================================================
+// Settings Widget Module
+// ============================================================================
+
+const SettingsWidget = {
+  modal: null,
+  settingsButton: null,
+  userNameInput: null,
+  settingsForm: null,
+  clearNameButton: null,
+  cancelButton: null,
+  modalClose: null,
+
+  /**
+   * Initialize settings widget
+   */
+  init() {
+    // Get DOM elements
+    this.modal = document.getElementById('settings-modal');
+    this.settingsButton = document.getElementById('settings-button');
+    this.userNameInput = document.getElementById('user-name-input');
+    this.settingsForm = document.getElementById('settings-form');
+    this.clearNameButton = document.getElementById('clear-name-button');
+    this.cancelButton = document.getElementById('cancel-button');
+    this.modalClose = document.getElementById('modal-close');
+
+    if (!this.modal || !this.settingsButton) {
+      console.error('Settings modal or button not found');
+      return;
+    }
+
+    // Set up event listeners
+    this.attachEventHandlers();
+  },
+
+  /**
+   * Attach event handlers for settings UI
+   */
+  attachEventHandlers() {
+    // Open modal when settings button is clicked
+    if (this.settingsButton) {
+      this.settingsButton.addEventListener('click', () => this.openModal());
+    }
+
+    // Close modal when close button is clicked
+    if (this.modalClose) {
+      this.modalClose.addEventListener('click', () => this.closeModal());
+    }
+
+    // Close modal when cancel button is clicked
+    if (this.cancelButton) {
+      this.cancelButton.addEventListener('click', () => this.closeModal());
+    }
+
+    // Close modal when clicking outside the modal content
+    if (this.modal) {
+      this.modal.addEventListener('click', (e) => {
+        if (e.target === this.modal) {
+          this.closeModal();
+        }
+      });
+    }
+
+    // Handle form submission
+    if (this.settingsForm) {
+      this.settingsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.saveSettings();
+      });
+    }
+
+    // Handle clear name button
+    if (this.clearNameButton) {
+      this.clearNameButton.addEventListener('click', () => {
+        this.clearUserName();
+      });
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.modal.style.display === 'flex') {
+        this.closeModal();
+      }
+    });
+  },
+
+  /**
+   * Open the settings modal
+   */
+  openModal() {
+    if (!this.modal) return;
+
+    // Load current user name into input
+    const currentUserName = StorageUtil.loadUserName();
+    if (this.userNameInput) {
+      this.userNameInput.value = currentUserName || '';
+    }
+
+    // Show modal
+    this.modal.style.display = 'flex';
+
+    // Focus on input
+    if (this.userNameInput) {
+      setTimeout(() => this.userNameInput.focus(), 100);
+    }
+  },
+
+  /**
+   * Close the settings modal
+   */
+  closeModal() {
+    if (!this.modal) return;
+    this.modal.style.display = 'none';
+  },
+
+  /**
+   * Save settings from the form
+   */
+  saveSettings() {
+    if (!this.userNameInput) return;
+
+    const userName = this.userNameInput.value.trim();
+
+    // Save user name (empty string will clear it)
+    GreetingWidget.setUserName(userName || null);
+
+    // Show success notification
+    ErrorHandler.showNotification('Settings saved successfully!', 'success', 2000);
+
+    // Close modal
+    this.closeModal();
+  },
+
+  /**
+   * Clear the user name
+   */
+  clearUserName() {
+    // Clear the input field
+    if (this.userNameInput) {
+      this.userNameInput.value = '';
+    }
+
+    // Clear from storage and greeting
+    GreetingWidget.setUserName(null);
+
+    // Show notification
+    ErrorHandler.showNotification('Name cleared successfully!', 'success', 2000);
+
+    // Close modal
+    this.closeModal();
+  }
+};
+
+// ============================================================================
+// Timer Settings Widget Module
+// ============================================================================
+
+const TimerSettingsWidget = {
+  modal: null,
+  settingsButton: null,
+  durationInput: null,
+  settingsForm: null,
+  cancelButton: null,
+  modalClose: null,
+  errorElement: null,
+
+  /**
+   * Initialize timer settings widget
+   */
+  init() {
+    // Get DOM elements
+    this.modal = document.getElementById('timer-settings-modal');
+    this.settingsButton = document.getElementById('timer-settings-button');
+    this.durationInput = document.getElementById('timer-duration-input');
+    this.settingsForm = document.getElementById('timer-settings-form');
+    this.cancelButton = document.getElementById('timer-cancel-button');
+    this.modalClose = document.getElementById('timer-modal-close');
+    this.errorElement = document.getElementById('timer-duration-error');
+
+    if (!this.modal || !this.settingsButton) {
+      console.error('Timer settings modal or button not found');
+      return;
+    }
+
+    // Set up event listeners
+    this.attachEventHandlers();
+  },
+
+  /**
+   * Attach event handlers for timer settings UI
+   */
+  attachEventHandlers() {
+    // Open modal when settings button is clicked
+    if (this.settingsButton) {
+      this.settingsButton.addEventListener('click', () => this.openModal());
+    }
+
+    // Close modal when close button is clicked
+    if (this.modalClose) {
+      this.modalClose.addEventListener('click', () => this.closeModal());
+    }
+
+    // Close modal when cancel button is clicked
+    if (this.cancelButton) {
+      this.cancelButton.addEventListener('click', () => this.closeModal());
+    }
+
+    // Close modal when clicking outside the modal content
+    if (this.modal) {
+      this.modal.addEventListener('click', (e) => {
+        if (e.target === this.modal) {
+          this.closeModal();
+        }
+      });
+    }
+
+    // Handle form submission
+    if (this.settingsForm) {
+      this.settingsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.saveSettings();
+      });
+    }
+
+    // Clear error when user types
+    if (this.durationInput && this.errorElement) {
+      this.durationInput.addEventListener('input', () => {
+        this.errorElement.style.display = 'none';
+        this.errorElement.textContent = '';
+      });
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.modal.style.display === 'flex') {
+        this.closeModal();
+      }
+    });
+  },
+
+  /**
+   * Open the timer settings modal
+   */
+  openModal() {
+    if (!this.modal) return;
+
+    // Load current timer duration into input
+    const currentDuration = FocusTimer.customDuration;
+    if (this.durationInput) {
+      this.durationInput.value = currentDuration;
+    }
+
+    // Clear any previous error
+    if (this.errorElement) {
+      this.errorElement.style.display = 'none';
+      this.errorElement.textContent = '';
+    }
+
+    // Show modal
+    this.modal.style.display = 'flex';
+
+    // Focus on input
+    if (this.durationInput) {
+      setTimeout(() => {
+        this.durationInput.focus();
+        this.durationInput.select();
+      }, 100);
+    }
+  },
+
+  /**
+   * Close the timer settings modal
+   */
+  closeModal() {
+    if (!this.modal) return;
+    this.modal.style.display = 'none';
+  },
+
+  /**
+   * Save timer settings from the form
+   */
+  saveSettings() {
+    if (!this.durationInput) return;
+
+    const durationValue = this.durationInput.value.trim();
+    const duration = parseInt(durationValue, 10);
+
+    // Validate duration
+    if (isNaN(duration) || duration < 1 || duration > 120) {
+      // Show error message
+      if (this.errorElement) {
+        this.errorElement.textContent = 'Please enter a value between 1 and 120 minutes';
+        this.errorElement.style.display = 'block';
+      }
+      return;
+    }
+
+    // Set the new duration
+    const success = FocusTimer.setDuration(duration);
+
+    if (success) {
+      // Show success notification
+      ErrorHandler.showNotification(`Timer duration set to ${duration} minutes!`, 'success', 2000);
+
+      // Close modal
+      this.closeModal();
+    } else {
+      // Show error message
+      if (this.errorElement) {
+        this.errorElement.textContent = 'Failed to set timer duration';
+        this.errorElement.style.display = 'block';
+      }
+    }
+  }
+};
+
+// ============================================================================
 // Application Initialization
 // ============================================================================
 
@@ -1201,10 +1891,13 @@ function initApp() {
     }
 
     // Initialize all widgets
+    ThemeWidget.init();
     GreetingWidget.init();
     FocusTimer.init();
     TodoWidget.init();
     QuickLinksWidget.init();
+    SettingsWidget.init();
+    TimerSettingsWidget.init();
 
     // Log initialization time for performance monitoring
     const endTime = performance.now();

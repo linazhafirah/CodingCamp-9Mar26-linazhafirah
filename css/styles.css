@@ -14,6 +14,22 @@
   --shadow: rgba(0, 0, 0, 0.1);
 }
 
+/* Dark Theme */
+body.dark-theme {
+  --primary-color: #5da3f5;
+  --primary-hover: #4a90e2;
+  --secondary-color: #8b95a0;
+  --secondary-hover: #9ca5b0;
+  --background: #1a1d23;
+  --surface: #25292f;
+  --text-primary: #e4e6eb;
+  --text-secondary: #b0b3b8;
+  --border: #3a3f47;
+  --success: #2ecc71;
+  --error: #e74c3c;
+  --shadow: rgba(0, 0, 0, 0.3);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -208,6 +224,89 @@ input[type="text"]:focus {
   text-align: center;
   border-bottom: 3px solid var(--primary-color);
   padding: 2rem 1.5rem;
+  position: relative;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1.5rem;
+  padding: 0;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.theme-toggle:hover {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+.theme-toggle:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.theme-icon {
+  display: block;
+  line-height: 1;
+  transition: transform 0.3s ease;
+}
+
+/* Settings Button */
+.settings-button {
+  position: absolute;
+  top: 1rem;
+  right: 5rem;
+  background-color: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1.5rem;
+  padding: 0;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.settings-button:hover {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.settings-button:active {
+  transform: scale(0.95);
+}
+
+.settings-button:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.settings-icon {
+  display: block;
+  line-height: 1;
+  transition: transform 0.3s ease;
 }
 
 .greeting {
@@ -241,6 +340,35 @@ input[type="text"]:focus {
 /* Focus Timer Widget Styles */
 .timer-section {
   text-align: center;
+  position: relative;
+}
+
+.timer-settings-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.timer-settings-button:hover {
+  background-color: var(--border);
+  transform: scale(1.1);
+}
+
+.timer-settings-button:active {
+  transform: scale(0.95);
+}
+
+.timer-settings-button:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .timer-display {
@@ -332,6 +460,37 @@ input[type="text"]:focus {
   word-break: break-word;
 }
 
+.task-reorder-buttons {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.btn-reorder {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 16px;
+  padding: 0.25rem 0.5rem;
+  min-width: 32px;
+}
+
+.btn-reorder:hover:not(:disabled) {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-reorder:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .task-edit-input {
   flex: 1;
   font-size: 14px;
@@ -416,4 +575,136 @@ input[type="text"]:focus {
 .link-item .btn-delete:hover {
   background-color: rgba(231, 76, 60, 0.9);
   transform: none;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background-color: var(--surface);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px var(--shadow);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.modal-close:hover {
+  background-color: var(--border);
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  width: 100%;
+  font-size: 14px;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  background-color: var(--background);
+  color: var(--text-primary);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.form-help {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.form-actions .btn {
+  min-width: 80px;
 }
